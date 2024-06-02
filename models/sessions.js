@@ -20,10 +20,6 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         references: { model: "users", key: "id" },
       },
-      refreshToken: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
     },
     {
       sequelize,

@@ -18,10 +18,6 @@ module.exports = {
         allowNull: false,
         references: { model: "users", key: "id" },
       },
-      refresh_token: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
     });
   },
   async down(queryInterface, DataTypes) {

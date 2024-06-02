@@ -2,7 +2,7 @@ const AppError = require("../utils/appError");
 const { promisify } = require("util");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { Users } = require("../models");
+const { Users, Sessions } = require("../models");
 const catchAsync = require("../utils/catchAsync");
 const { createSendToken } = require("./../utils/createSendToken");
 const { Op } = require("sequelize");
@@ -22,50 +22,16 @@ exports.protect = catchAsync(async (req, res, next) => {
   next();
 });
 
-exports.refreshToken = catchAsync(async (req, res, next) => {
-  let { refreshToken } = req.body;
-  if (!refreshToken || typeof refreshToken !== "string")
+exports.signUp = catchAsync(async (req, res, next) => {
+  const { email, phone, password } = req.body;
+
+  if (!email || !phone || !password || password.length < 5)
     return next(new AppError("Invalid Credentials", 400));
 
-  let token,
-    auth = req.headers.authorization;
-  if (auth?.startsWith("Bearer")) token = auth.split(" ")[1];
-  if (!token) return next(new AppError("You are not logged in", 401));
+  const newUser = await Users.create({ email, password, phone });
+  let { token, refreshToken } = await createSendToken(newUser);
 
-  let decoded = null;
-  try {
-    decoded = jwt.verify(token, process.env.TOKEN_SECRET_KEY);
-  } catch (error) {
-    if (error.name === "TokenExpiredError") {
-      decoded = jwt.decode(token);
-    } else {
-      return next(new AppError("Invalid token", 401));
-    }
-  }
-
-  const user = await Users.findOne({
-    where: {
-      uuid: decoded.uuid,
-    },
-  });
-
-  if (!user) {
-    return res.status(401).json({
-      status: "Failed",
-      message: "Invalid token",
-    });
-  }
-
-  if (user.refreshToken !== refreshToken) {
-    return res.status(409).json({
-      status: "fail",
-      message: "Someone has logged to your account",
-    });
-  }
-
-  let { token: t, refreshToken: rt } = await createSendToken(user);
-
-  return res.status(200).json({ token: t, refreshToken: rt });
+  return res.status(200).json({ token, refreshToken });
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -79,26 +45,26 @@ exports.login = catchAsync(async (req, res, next) => {
   if (!user || !(await bcrypt.compare(password, user.password)))
     return next(new AppError("Incorrect id or password", 400));
 
-  let { token: t, refreshToken: rt } = await createSendToken(user);
-  return res.status(200).json({ token: t, refreshToken: rt });
+  let { token, refreshToken } = await createSendToken(user);
+  return res.status(200).json({ token, refreshToken });
 });
 
-exports.signUp = catchAsync(async (req, res, next) => {
-  const { email, phone, password } = req.body;
+exports.logout = catchAsync(async (req, res, next) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return next(new AppError("Provide refreshToken", 400));
 
-  if (!email || !phone || !password || password.length < 5)
-    return next(new AppError("Invalid Credentials", 400));
+  const session = await Sessions.findOne({
+    where: { uuid: refreshToken, userId: req.user.id },
+  });
+  if (!session) return next(new AppError("Not Found", 404));
+  await session.destroy();
 
-  const newUser = await Users.create({ email, password, phone });
-  let { token: t, refreshToken: rt } = await createSendToken(newUser);
-
-  return res.status(200).json({ token: t, refreshToken: rt });
+  return res.status(204).send();
 });
 
 exports.refreshToken = catchAsync(async (req, res, next) => {
   let { refreshToken } = req.body;
-  if (!refreshToken || typeof refreshToken !== "string")
-    return next(new AppError("Invalid Credentials", 400));
+  if (!refreshToken) return next(new AppError("Provide refreshToken", 400));
 
   let token,
     auth = req.headers.authorization;
@@ -107,33 +73,29 @@ exports.refreshToken = catchAsync(async (req, res, next) => {
 
   let decoded = null;
   try {
-    decoded = jwt.verify(token, process.env.TOKEN_SECRET_KEY);
+    decoded = await promisify(jwt.verify(token, process.env.TOKEN_SECRET_KEY));
   } catch (error) {
+    console.log(error.name);
     if (error.name === "TokenExpiredError") {
+      console.log("IFFF");
       decoded = jwt.decode(token);
     } else {
-      return next(new AppError("Invalid token", 401));
+      // return next(new AppError("Invalid token", 401));
+      decoded = jwt.decode(token);
     }
   }
+  console.log(decoded);
+  const user = await Users.findOne({ where: { uuid: decoded.uuid } });
+  if (!user)
+    return res.status(401).json({ status: "Failed", message: "Invalid token" });
 
-  const user = await models.Users.findOne({ where: { uuid: decoded.uuid } });
-
-  if (!user) {
-    return res.status(401).json({
-      status: "Failed",
-      message: "Invalid token",
-    });
-  }
-
-  if (user.refreshToken !== refreshToken) {
-    return res.status(409).json({
-      status: "fail",
-      message: "Someone has logged to your account",
-    });
-  }
+  const session = await Sessions.findOne({
+    where: { uuid: refreshToken, userId: decoded.id },
+  });
+  if (!session) next(new AppError("Not Found", 404));
+  await session.destroy();
 
   let { token: t, refreshToken: rt } = await createSendToken(user);
-
   return res.status(200).json({ token: t, refreshToken: rt });
 });
 

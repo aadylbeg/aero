@@ -1,9 +1,9 @@
 require("dotenv").config({ path: "./.env" });
 const { sequelize } = require("./models");
 
-const server = require("./app").listen(3223, async () => {
+const server = require("./app").listen(process.env.PORT, async () => {
   await sequelize.authenticate();
-  console.log(`Connected to DB and listening on port 3223...`);
+  console.log(`Connected to DB and listening on port ${process.env.PORT}...`);
 });
 
 process.on("unhandledRejection", (err) => {

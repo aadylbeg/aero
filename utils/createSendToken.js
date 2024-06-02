@@ -1,9 +1,10 @@
 const uuid = require("uuid");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
+const { Sessions } = require("../models");
 
 const signToken = (user) => {
   let jwtData = {
+    id: user.id,
     uuid: user.uuid,
     email: user.name,
     phone: user.surname,
@@ -18,9 +19,7 @@ exports.createSendToken = async (user) => {
   let token = signToken(user);
 
   let refreshToken = uuid.v4();
-  const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
-  await user.update({ refreshToken: hashedRefreshToken });
-
+  await Sessions.create({ uuid: refreshToken, userId: user.id });
   return { token, refreshToken };
 };
