@@ -4,13 +4,17 @@ const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
   class Users extends Model {
-    static associate() {}
+    static associate({ Sessions }) {
+      this.hasMany(Sessions, {
+        foreignKey: "userId",
+        as: "sessions",
+      });
+    }
     toJSON() {
       return {
         ...this.get(),
         // id: undefined,
         password: undefined,
-        refreshToken: undefined,
       };
     }
   }
@@ -23,17 +27,16 @@ module.exports = (sequelize, DataTypes) => {
       email: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
       },
       phone: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
       },
       password: {
         type: DataTypes.STRING,
         allowNull: false,
-      },
-      refreshToken: {
-        type: DataTypes.STRING,
       },
     },
     {

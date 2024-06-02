@@ -1,5 +1,6 @@
 const uuid = require("uuid");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
 const signToken = (user) => {
   let jwtData = {

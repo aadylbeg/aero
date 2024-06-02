@@ -1,8 +1,8 @@
-const { sequelize } = require("../models");
+const { sequelize, Sessions } = require("../models");
 
 (async () => {
   try {
-    await sequelize.sync({ force: true });
+    await Sessions.sync({ force: true });
     console.log("DB Synced");
   } catch (err) {
     console.log(err);
