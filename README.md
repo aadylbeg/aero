@@ -1,28 +1,27 @@
-Getting Start
+## Getting Start
 
-run command
+run command `npm install`
 
-```
- npm install
-```
+change `.env` file in root with following contents:
 
-create .env file in root with following contents:
-
+```shell
     PORT = < your_port >
     JWT_SECRET = < your_secret >
+    JWT_EXPIRES_IN = < your_expire_duration >
+```
 
-    USER = < database_user >
-    HOST = < database_host >
-    DATABASE = < database_name >
-    PASSWORD = < database_password >
+change `config.json` file in config folder with following contents:
 
-    GOOGLE_CLIENT_ID = < your_client_id >
-    GOOGLE_CLIENT_SECRET = < your_secret >
+```shell
+    username = < database_user >
+    password = < database_password >
+    database = < database_name >
+    host = < database_host >
+    dialect = < your_dialect >
+```
 
-run command node .\utils\seeders.js to seed admin into database
+run command `node .\utils\sync.js` to sync tables into database
 
-run command npm start to start the project
+run command `npm start` to start the project
 
-all you needed apis in the ./public/JobHunter.postman_collection.json file
-
-You can login as admin with username 'admin' and password 'admin'
+all you needed apis in the `aero.postman_collection.json` file
